@@ -15,7 +15,13 @@ extern char end[]; // first address after kernel loaded from ELF file
 
 struct run {
   struct run *next;
+  struct run *prev;
 };
+
+struct {
+	struct run *head;
+	int set;
+} queue;
 
 struct {
   struct spinlock lock;
@@ -70,7 +76,12 @@ kfree(char *v)
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = (struct run*)v;
+  if(!queue.set){
+	  queue.head = r;
+	  queue.set = 1;
+  }
   r->next = kmem.freelist;
+  kmem.freelist->prev = r;
   kmem.freelist = r;
   if(kmem.use_lock)
     release(&kmem.lock);
@@ -86,9 +97,9 @@ kalloc(void)
 
   if(kmem.use_lock)
     acquire(&kmem.lock);
-  r = kmem.freelist;
+  r = queue.head;
   if(r)
-    kmem.freelist = r->next;
+    queue.head = r->prev;
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
