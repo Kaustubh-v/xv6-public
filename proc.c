@@ -7,13 +7,16 @@
 #include "proc.h"
 #include "spinlock.h"
 
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
 } ptable;
 
+
 static struct proc *initproc;
 
+int no_scheduler_called = 0;
 int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
@@ -343,6 +346,7 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
+      no_scheduler_called++;
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
@@ -531,4 +535,35 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+void p_states(){
+  struct proc * p;
+  int total_number_of_processes = 0;
+  int runnable_processes = 0;
+  int sleeping_processes = 0;
+  int zombie_processes = 0;
+
+  acquire(&ptable.lock);
+
+  for(p = ptable.proc; p< &ptable.proc[NPROC]; p++){
+      total_number_of_processes++;
+    
+    if(p->state == RUNNABLE){
+      runnable_processes++;
+    }
+    if(p->state == SLEEPING){
+      sleeping_processes++;
+    }
+    if(p->state == ZOMBIE ){
+      zombie_processes++;
+    }
+  }
+
+  cprintf("Total number of forked processes : %d\nTotal number of runnable processes : %d\nTotal number of sleeping processes : %d\nTotal number of Zombie processes: %d\n", total_number_of_processes, runnable_processes, sleeping_processes, zombie_processes );
+  cprintf("Total number fo times scheduling was done for processes : %d\n", no_scheduler_called);
+  cprintf("Total number of times KBD interrupt occured: %d\n", no_kbd_int);
+  cprintf("Total number of traps : %d\n", no_traps);
+  release(&ptable.lock);
+
 }

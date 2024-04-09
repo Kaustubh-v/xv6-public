@@ -36,6 +36,7 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
+  no_traps++;
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)
       exit();
@@ -64,6 +65,7 @@ trap(struct trapframe *tf)
     // Bochs generates spurious IDE1 interrupts.
     break;
   case T_IRQ0 + IRQ_KBD:
+    no_kbd_int++;
     kbdintr();
     lapiceoi();
     break;
